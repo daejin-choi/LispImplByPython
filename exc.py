@@ -54,3 +54,9 @@ class ParenthesisUnclosedError(ParsingError):
     return self.index+1
 
 
+class TypeError(exceptions.TypeError):
+  pass
+
+
+class ValueError(exceptions.ValueError):
+  pass
