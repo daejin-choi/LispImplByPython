@@ -11,7 +11,8 @@ if __name__ == '__main__':
   try:
     rst = list(parser.parsing(code))
     print 'parse result : ', rst
-    env = environment.TABLE_ENV
+    env = dict(environment.INITIAL_ENV)
+    env['env'] = env
     ret_value = map( lambda rst:environment.evaluate(env, rst), rst)
   except exc.SyntaxError as e:
     e.display_error()

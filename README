@@ -1,0 +1,12 @@
+"""
+ERROR DESCRIPTION
+"""
+
+- Syntax Error
+- Impl Error
+  - Special Form Error
+    - Define
+    - If
+  - Eval Error ( Cannot be evaluated )
+    - Unknown Symbol
+    - Only Symbol can be operator

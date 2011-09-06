@@ -1,5 +1,3 @@
-
-
 import exceptions
 
 
@@ -60,3 +58,7 @@ class TypeError(exceptions.TypeError):
 
 class ValueError(exceptions.ValueError):
   pass
+
+class ArgumentError(exceptions.Exception):
+  def __init__(self):
+    exceptions.Exception.__init__(self)

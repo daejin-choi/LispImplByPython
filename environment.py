@@ -1,35 +1,37 @@
+import exceptions
 import exc
 import sys
 
-
 def macro_define(env, lst):
 
-  #in case lst[0] is number 
+  if not isinstance(lst, list) or not isinstance(lst[0], Symbol):
+    raise exceiptions.TypeError
 
-  #in case lst[0] is already define in environment
-#  if env[str(lst[0])] is not None:
-#    pass #raise CannotDefineInitialEnvError
+  if len(lst) != 2:
+    raise exc.ArgumentError
+
   TABLE_ENV[str(lst[0])] = evaluate(env, lst[1])
 
-  return str(lst[0])
+  return TABLE_ENV[str(lst[0])]
 
-def macro_if(env, lst): #cond, true_value, false_value):
+def macro_if(env, lst): 
+
+  if len(lst) != 3:
+    raise exc.ArgumentError
 
   if evaluate(env, lst[0]):
     return evaluate( env, lst[1] )
   else:
     return evaluate( env, lst[2] )
 
-
-
 SPECIAL_FORMS  = {
     'define':macro_define ,
     'if':macro_if,
-    'quote':lambda x:x
+    'quote':lambda env, forms: forms[0]
 }
 
 INITIAL_ENV = {
-    'eval': lambda env, y:evaluate(env, y),
+    'eval': lambda code, env: evaluate(env, code),
     'car':lambda x:x[0],
     'cdr':lambda x:x[1:],
     'null?':lambda x:not len(x),
@@ -43,8 +45,6 @@ INITIAL_ENV = {
     'nil':None,
     'display': sys.stdout.write
 }
-
-TABLE_ENV = dict( INITIAL_ENV.items() )
 
 class Symbol(object):
   def __init__(self, symbol):
@@ -64,12 +64,12 @@ def evaluate(env, lst):
     special_obj = SPECIAL_FORMS.get(str(lst[0]))
     if special_obj is not None:
       return special_obj(env, lst[1:])
-
   if isinstance(lst, list):
     ret_rst = map( lambda lst:evaluate(env, lst), lst )
-    return apply(ret_rst[0], ret_rst[1:])
+    eval_result = apply(ret_rst[0], ret_rst[1:])
+    return eval_result
   elif isinstance(lst, Symbol):
-    return TABLE_ENV[str(lst)]
+    return env[str(lst)]
   elif isinstance(lst, int):
     return int(lst)
   elif isinstance(lst, float):
@@ -77,5 +77,5 @@ def evaluate(env, lst):
   elif isinstance(lst, basestring):
     return str(lst)
   else:
-    pass #raise exc.TypeError
+    raise TypeError('{0!r} cannot be evaluated'.format(lst))
 
