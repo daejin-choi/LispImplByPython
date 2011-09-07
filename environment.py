@@ -5,7 +5,7 @@ import sys
 def macro_define(env, lst):
 
   if not isinstance(lst, list) or not isinstance(lst[0], Symbol):
-    raise exceiptions.TypeError
+    raise exceptions.TypeError
 
   if len(lst) != 2:
     raise exc.ArgumentError
@@ -14,7 +14,7 @@ def macro_define(env, lst):
 
   return env[str(lst[0])]
 
-def macro_if(env, lst): 
+def macro_if(env, lst):
 
   if len(lst) != 3:
     raise exc.ArgumentError
@@ -24,10 +24,28 @@ def macro_if(env, lst):
   else:
     return evaluate( env, lst[2] )
 
+def macro_let(env, forms):
+  sub_dic={}
+  for form in forms[0]:
+    if not isinstance( form, list ):
+      raise TypeError
+
+    if len(form) != 2:
+      raise exceptions.ArgumentError
+
+    sub_dic[str(form[0])] = evaluate(env, form[1])
+
+  sub_env = Environment(sub_dic, env)
+  ret_obj = map( lambda forms:evaluate(sub_env, forms), forms[1:] )
+
+  return ret_obj[len(ret_obj)-1]
+
+
 SPECIAL_FORMS  = {
     'define':macro_define ,
     'if':macro_if,
-    'quote':lambda env, forms: forms[0]
+    'quote':lambda env, forms: forms[0],
+    'let': macro_let
 }
 
 INITIAL_ENV = {
@@ -43,8 +61,40 @@ INITIAL_ENV = {
     't':True,
     'f':False,
     'nil':None,
-    'display': sys.stdout.write
+    'display': lambda x:sys.stdout.write(str(x)+ '\n')
 }
+
+"""
+  def __getitem__(self, key):
+    ret_obj = self.dic.get(key)
+
+    if ret_obj is None:
+      if self.parent is not None:
+        ret_obj = self.parent[key]
+      else:
+        raise exceptions.KeyError
+
+    return ret_obj
+"""
+class Environment(object):
+
+
+  def __init__(self, dic, parent):
+    self.dic = dic
+    self.parent = parent
+
+  def __getitem__(self, key):
+    try:
+      return self.dic[key]
+    except KeyError:
+      if self.parent:
+        return self.parent[key]
+      raise
+
+  def __setitem__(self, key, value):
+    self.dic[key] = value
+
+
 
 class Symbol(object):
   def __init__(self, symbol):
@@ -66,8 +116,7 @@ def evaluate(env, lst):
       return special_obj(env, lst[1:])
   if isinstance(lst, list):
     ret_rst = map( lambda lst:evaluate(env, lst), lst )
-    eval_result = apply(ret_rst[0], ret_rst[1:])
-    return eval_result
+    return apply(ret_rst[0], ret_rst[1:])
   elif isinstance(lst, Symbol):
     return env[str(lst)]
   elif isinstance(lst, int):
