@@ -43,7 +43,9 @@ string
 2. if 
 3. quote
 4. lambda
+ : (define (add x y) (+ x y) ) == (define add ( lambda (x y) (+ x y) ) )
 5. let
+6. setf => 상위 environment로 가면서 해당 symbol을 찾아서 값을 바꿔버린다.
 
 ** initial environment
 1. eval

@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
   try:
     rst = list(parser.parsing(code))
-#    print 'parse result : ', rst
+    print 'parse result : ', rst
     env = environment.Environment(environment.INITIAL_ENV, None)
     env['env'] = env
     ret_value = map( lambda rst:environment.evaluate(env, rst), rst)

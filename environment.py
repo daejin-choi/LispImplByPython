@@ -38,14 +38,41 @@ def macro_let(env, forms):
   sub_env = Environment(sub_dic, env)
   ret_obj = map( lambda forms:evaluate(sub_env, forms), forms[1:] )
 
-  return ret_obj[len(ret_obj)-1]
+  return ret_obj[-1]
 
+def macro_setf(env, forms):
+  if len(forms) != 2:
+    raise exceptions.ArgumentError
+
+  env[str(forms[0])] = env[str(forms[1])]
+
+def macro_lambda(env, forms):
+  print forms
+  return Lambda(forms[0], forms[1:], env)
+
+
+class Lambda(object):
+
+
+  def __init__(self, params, body, env):
+    self.params = params
+    self.body = body
+    self.env = env
+
+  def __call__(self, *args):
+    env = Environment({}, self.env)
+    for i, arg in enumerate(args):
+      env[str(self.params[i])] = arg
+    ret_val = map( lambda form:evaluate(env, form), self.body )
+    return ret_val[-1]
 
 SPECIAL_FORMS  = {
     'define':macro_define ,
     'if':macro_if,
     'quote':lambda env, forms: forms[0],
-    'let': macro_let
+    'let': macro_let,
+    'lambda':macro_lambda,
+    'setf!':macro_setf
 }
 
 INITIAL_ENV = {
@@ -61,21 +88,10 @@ INITIAL_ENV = {
     't':True,
     'f':False,
     'nil':None,
-    'display': lambda x:sys.stdout.write(str(x)+ '\n')
+    'display': lambda x:sys.stdout.write(str(x)+ '\n'),
+    'apply':apply
 }
 
-"""
-  def __getitem__(self, key):
-    ret_obj = self.dic.get(key)
-
-    if ret_obj is None:
-      if self.parent is not None:
-        ret_obj = self.parent[key]
-      else:
-        raise exceptions.KeyError
-
-    return ret_obj
-"""
 class Environment(object):
 
 
