@@ -4,7 +4,6 @@ import environment
 
 if __name__ == '__main__':
   import sys
-  print '> '
   code = sys.stdin.read()
 #  for token in list ( lexer.lexing(code) ):
 #    print token.type, token.token, token.offset

@@ -10,9 +10,9 @@ def macro_define(env, lst):
   if len(lst) != 2:
     raise exc.ArgumentError
 
-  TABLE_ENV[str(lst[0])] = evaluate(env, lst[1])
+  env[str(lst[0])] = evaluate(env, lst[1])
 
-  return TABLE_ENV[str(lst[0])]
+  return env[str(lst[0])]
 
 def macro_if(env, lst): 
 
