@@ -2,30 +2,35 @@ import exceptions
 import exc
 import sys
 
-def macro_define(env, lst):
 
-  if not isinstance(lst, list) or not isinstance(lst[0], Symbol):
+def analyze_define(form):
+
+  if not isinstance(form, list) or not isinstance(form[0], Symbol):
     raise exceptions.TypeError
 
-  if len(lst) != 2:
+  if len(form) != 2:
     raise exc.ArgumentError
 
-  env[str(lst[0])] = evaluate(env, lst[1])
+  name = str(form[0])
+  val = analyze(form[1])
 
-  return env[str(lst[0])]
+  def eval_define(env, name, val):
+    env[name] = val(env)
+  return lambda env:eval_define(env, name, val)
 
-def macro_if(env, lst):
+def analyze_if(form):
 
-  if len(lst) != 3:
+  if len(form) != 3:
     raise exc.ArgumentError
 
-  if evaluate(env, lst[0]):
-    return evaluate( env, lst[1] )
-  else:
-    return evaluate( env, lst[2] )
+  val_cond = analyze(form[0])
+  val_true = analyze(form[1])
+  val_false = analyze(form[2])
 
-def macro_let(env, forms):
-  sub_dic={}
+  return lambda env:val_true(env) if val_cond(env) else val_false(env)
+
+def analyze_let(forms):
+  anal_dic = {}
   for form in forms[0]:
     if not isinstance( form, list ):
       raise TypeError
@@ -33,25 +38,43 @@ def macro_let(env, forms):
     if len(form) != 2:
       raise exceptions.ArgumentError
 
-    sub_dic[str(form[0])] = evaluate(env, form[1])
+    name = str(form[0])
+    anal_dic[name] = analyze(form[1])
 
-  sub_env = Environment(sub_dic, env)
-  ret_obj = map( lambda forms:evaluate(sub_env, forms), forms[1:] )
+  args = map( lambda form:analyze(form), forms[1:] )
 
-  return ret_obj[-1]
+  def eval_let(env, anal_dic, args):
+    eval_dic = {}
+    for func_key in anal_dic.keys():
+      eval_dic[func_key] = anal_dic[func_key](env)
 
-def macro_setf(env, forms):
-  if len(forms) != 2:
+    sub_env = Environment( eval_dic, env )
+    ret_objs = map ( lambda func:func(sub_env), args )
+
+    return ret_objs[-1]
+
+  return lambda env:eval_let(env, anal_dic, args)
+
+
+def analyze_quote(form):
+  return lambda env:form[0]
+
+def analyze_setf(form):
+  if len(form) != 2:
     raise exceptions.ArgumentError
 
-  env.setf(str(forms[0]), evaluate(env, forms[1]))
+  name = str(form[0])
+  vals = analyze(form[1])
 
-def macro_lambda(env, forms):
-  return Lambda(forms[0], forms[1:], env)
+  return lambda env:env.setf(name, vals(env))
+
+def analyze_lambda(forms):
+  args = forms[0]
+  body = map( analyze, forms[1:] )
+  return lambda env:Lambda(args, body, env)
 
 
 class Lambda(object):
-
 
   def __init__(self, params, body, env):
     self.params = params
@@ -62,16 +85,16 @@ class Lambda(object):
     env = Environment({}, self.env)
     for i, arg in enumerate(args):
       env[str(self.params[i])] = arg
-    ret_val = map( lambda form:evaluate(env, form), self.body )
+    ret_val = map( lambda body:body(env), self.body )
     return ret_val[-1]
 
 SPECIAL_FORMS  = {
-    'define':macro_define ,
-    'if':macro_if,
-    'quote':lambda env, forms: forms[0],
-    'let': macro_let,
-    'lambda':macro_lambda,
-    'setf!':macro_setf
+    'define':analyze_define ,
+    'if':analyze_if,
+    'quote':analyze_quote,
+    'let': analyze_let,
+    'lambda':analyze_lambda,
+    'setf!':analyze_setf
 }
 
 INITIAL_ENV = {
@@ -84,6 +107,7 @@ INITIAL_ENV = {
     '*':lambda *args:reduce(lambda x,y:x*y, args),
     '/':lambda *args:reduce(lambda x,y:x/y, args),
     '%':lambda x, y:x%y,
+    '=':lambda x, y:x==y,
     't':True,
     'f':False,
     'nil':None,
@@ -127,25 +151,36 @@ class Symbol(object):
   def __repr__(self):
     return 'Symbol({0!r})'.format(self.symbol)
 
-def evaluate(env, lst):
-  """
-  Check Special Form
-  """
-  if isinstance( lst, list ):
-    special_obj = SPECIAL_FORMS.get(str(lst[0]))
+def evaluate(env, form):
+  obj = analyze(form)
+  return obj(env)
+
+
+
+def analyze(form):
+
+  if isinstance( form, list ):
+    if not form:
+      raise TypeError('call cannot be an empty list')
+    elif isinstance(form[0], (int, float, basestring)):
+      raise TypeError('{0} is not callable'.format(form[0]))
+    special_obj = SPECIAL_FORMS.get(str(form[0]))
     if special_obj is not None:
-      return special_obj(env, lst[1:])
-  if isinstance(lst, list):
-    ret_rst = map( lambda lst:evaluate(env, lst), lst )
-    return apply(ret_rst[0], ret_rst[1:])
-  elif isinstance(lst, Symbol):
-    return env[str(lst)]
-  elif isinstance(lst, int):
-    return int(lst)
-  elif isinstance(lst, float):
-    return float(lst)
-  elif isinstance(lst, basestring):
-    return str(lst)
+      return special_obj(form[1:])
+
+  if isinstance(form, Symbol):
+    name = str(form)
+    return lambda env:env[name]
+  elif isinstance(form, (int, float, basestring)):
+    return lambda env:form
+  elif isinstance(form, list):
+    anal_funcs = map(analyze, form)
+    def eval_(env):
+      args = []
+      for func in anal_funcs:
+        args.append(func(env))
+      return args[0](*args[1:])
+    return eval_
   else:
     raise TypeError('{0!r} cannot be evaluated'.format(lst))
 

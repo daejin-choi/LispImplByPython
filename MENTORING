@@ -56,6 +56,17 @@ string
 6. nil, null?
 
 
+**** Analyzer ****
+Without Analyzer 
+ : Symbol-> env에서 찾아서 리턴
+ : Atom-> form
+ : list-> 각 인자에evaluate한 다음에 apply
+
+ But!! 너무 evaluate가 많이 호출된다.
+
+ (define factorial ( lambda ( n ) ( if 
+
+
 - 2가지 종류의 Lisp Type
  1. Lisp 1
    함수와 변수가 같은 environment의 name table 이용하는 lisp
