@@ -44,10 +44,9 @@ def macro_setf(env, forms):
   if len(forms) != 2:
     raise exceptions.ArgumentError
 
-  env[str(forms[0])] = env[str(forms[1])]
+  env.setf(str(forms[0]), evaluate(env, forms[1]))
 
 def macro_lambda(env, forms):
-  print forms
   return Lambda(forms[0], forms[1:], env)
 
 
@@ -110,7 +109,13 @@ class Environment(object):
   def __setitem__(self, key, value):
     self.dic[key] = value
 
-
+  def setf(self, key, value):
+    if key in self.dic:
+      self.dic[key] = value
+    elif self.parent:
+      obj = self.parent.setf(key, value)
+    else:
+      raise KeyError(repr(key))
 
 class Symbol(object):
   def __init__(self, symbol):
